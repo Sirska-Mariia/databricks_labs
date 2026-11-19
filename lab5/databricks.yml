@@ -1,0 +1,46 @@
+bundle:
+  name: lab5_declarative_pipeline
+
+variables:
+  catalog:
+    default: dbr_dev_ua5816bd
+  login:
+    default: mariiasirska
+  storage_account:
+    default: dlsua5816bd
+
+resources:
+  pipelines:
+    lab5_pipeline:
+      name: ${var.login}_lab5_pipeline
+      catalog: ${var.catalog}
+      schema: ${var.login}_silver
+      continuous: false
+      serverless: true
+      configuration:
+        catalog: ${var.catalog}
+        login: ${var.login}
+        raw_path: abfss://${var.login}@${var.storage_account}.dfs.core.windows.net/olist/raw
+        events_source_table: ${var.catalog}.${var.login}_bronze.lab3_events_bronze
+      libraries:
+        - file:
+            path: ./src/lab5_pipeline.py
+
+  jobs:
+    lab5_pipeline_job:
+      name: ${var.login}_lab5_pipeline_job
+      tasks:
+        - task_key: run_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.lab5_pipeline.id}
+      schedule:
+        quartz_cron_expression: "0 0 4 * * ?"
+        timezone_id: UTC
+        pause_status: PAUSED
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-7405604651938730.10.azuredatabricks.net/browse/folders/4107748390455508?o=7405604651938730
