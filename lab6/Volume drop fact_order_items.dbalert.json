@@ -1,0 +1,35 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "drop_pct",
+      "display": "drop_pct",
+      "aggregation": "AGGREGATION_UNSPECIFIED"
+    },
+    "comparison_operator": "GREATER_THAN",
+    "threshold": {
+      "value": {
+        "double_value": 20.0
+      }
+    },
+    "notification": {
+      "retrigger_seconds": 1
+    }
+  },
+  "schedule": {
+    "quartz_cron_schedule": "33 46 22 * * ?",
+    "timezone_id": "Europe/Kiev"
+  },
+  "query_lines": [
+    "WITH ranked AS (",
+    "  SELECT row_count, snapshot_ts,",
+    "         row_number() OVER (ORDER BY snapshot_ts DESC) AS rn",
+    "  FROM dbr_dev_ua5816bd.mariiasirska_gold.ops_volume_log",
+    "  WHERE table_name = 'fact_order_items'",
+    ")",
+    "SELECT cur.row_count  AS current_rows,",
+    "       prev.row_count AS previous_rows,",
+    "       round(100.0 * (prev.row_count - cur.row_count) / prev.row_count, 1) AS drop_pct",
+    "FROM ranked cur",
+    "JOIN ranked prev ON cur.rn = 1 AND prev.rn = 2;"
+  ]
+}
